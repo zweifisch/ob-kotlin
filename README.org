@@ -30,4 +30,15 @@ org-babel functions for kotlin evaluation
 : 
 : #+RESULTS:
 : : 6765
+   
+workaround for data class in kotlin repl(adding the square brackets)
+
+: #+BEGIN_SRC kotlin
+: [data] class User(val id:String, val name:String)
+: 
+: User("19", "kotlin")
+: #+END_SRC
+: 
+: #+RESULTS:
+: : User(id=19, name=kotlin)
 
