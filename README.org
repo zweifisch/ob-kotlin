@@ -1,5 +1,33 @@
 * ob-kotlin
 
-kotlin in org-mode blocks
+org-babel functions for kotlin evaluation
+
+** options
+
+| option     | example              |
+|------------+----------------------|
+| =:session= | =:session mysession= |
 
 ** examples
+
+: #+BEGIN_SRC kotlin
+: 1..100 filter {it % 19 == 0} reduce {a,b -> a + b}
+: #+END_SRC
+: 
+: #+RESULTS:
+: : 285
+
+: #+BEGIN_SRC kotlin
+: fun fib(n: Int):Int {
+:     return when (n) {
+:            0,1 -> 1
+:            else -> fib(n - 1) + fib(n - 2)
+:     }
+: }
+: 
+: fib(19)
+: #+END_SRC
+: 
+: #+RESULTS:
+: : 6765
+
