@@ -15,44 +15,57 @@
 ;;
 
 ;;; Code:
-(require 'org)
 (require 'ob)
-(require 'comint)
 
-(defvar org-babel-kotlin-eoe "org-babel-kotlin-eoe")
+(defvar ob-kotlin-process-output "")
+
+(defvar ob-kotlin-eoe "ob-kotlin-eoe")
+
+(defgroup ob-kotlin nil
+  "org-babel functions for kotlin evaluation"
+  :group 'org)
+
+(defcustom ob-kotlin:kotlinc "kotlinc"
+  "kotlin compiler"
+  :group 'ob-kotlin
+  :type 'string)
 
 (defun org-babel-execute:kotlin (body params)
-  (let* ((session (cdr (assoc :session params))))
-    (ob-kotlin/eval session body)))
+  (let ((session (cdr (assoc :session params))))
+    (ob-kotlin--ensure-session session)
+    (let* ((tmp (org-babel-temp-file "kotlin-"))
+           (load (progn
+                   (with-temp-file tmp (insert body))
+                   (format ":load %s" tmp))))
+      (ob-kotlin-eval-in-repl session load))))
 
-(defun ob-kotlin/eval (session body)
-  (ob-kotlin/ensure-session session)
-  (let* ((tmp (org-babel-temp-file "kotlin-"))
-         (load (progn
-                 (with-temp-file tmp (insert body))
-                 (format ":load %s" tmp)))
-         (result (ob-kotlin/eval-in-repl session load)))
-    (message (prin1-to-string result))
-    (org-babel-chomp (mapconcat 'identity (cdr (cdr (butlast result 2))) ""))))
+(defun ob-kotlin--ensure-session (session)
+  (let ((name (format "*ob-kotlin-%s*" session)))
+    (unless (and (get-process name)
+                 (process-live-p (get-process name)))
+      (let ((process (with-current-buffer (get-buffer-create name)
+                       (start-process name name ob-kotlin:kotlinc))))
+        (sit-for 1)
+        (set-process-filter process 'ob-kotlin--process-filter)
+        (ob-kotlin--wait "Welcome to Kotlin")))))
 
-(defun ob-kotlin/eval-in-repl (session body)
-  (let ((buffer (format "*kotlin-%s*" session))
-        (eoe (format "%S" org-babel-kotlin-eoe)))
-    (org-babel-comint-with-output
-        (buffer eoe t body)
-      (mapc
-       (lambda (line)
-         (insert (org-babel-chomp line))
-         (sleep-for 0 5)
-         (comint-send-input nil t))
-       (list body eoe)))))
+(defun ob-kotlin--process-filter (process output)
+  (setq ob-kotlin-process-output (concat ob-kotlin-process-output output)))
 
-(defun ob-kotlin/ensure-session (session)
-  (unless (org-babel-comint-buffer-livep (format "*kotlin-%s*" session))
-    (progn
-      (make-comint (format "kotlin-%s" session) "env" nil "kotlinc")
-      (ob-kotlin/eval-in-repl session "")
-      (sleep-for 0 500))))
+(defun ob-kotlin--wait (pattern)
+  (while (not (string-match-p pattern ob-kotlin-process-output))
+    (sit-for 1)))
+
+(defun ob-kotlin-eval-in-repl (session body)
+  (let ((name (format "*ob-kotlin-%s*" session)))
+    (setq ob-kotlin-process-output "")
+    (process-send-string name (format "%s\n\"%s\"\n" body ob-kotlin-eoe))
+    (accept-process-output (get-process name) nil nil 1)
+    (ob-kotlin--wait ob-kotlin-eoe)
+    (replace-regexp-in-string
+     "^>>> " ""
+     (replace-regexp-in-string
+      (format "\\(^>>> \\)?%s\n" ob-kotlin-eoe) "" ob-kotlin-process-output))))
 
 (provide 'ob-kotlin)
 ;;; ob-kotlin.el ends here
