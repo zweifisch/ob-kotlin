@@ -50,7 +50,8 @@
            (load (progn
                    (with-temp-file tmp (insert body))
                    (format ":load %s" tmp))))
-      (ob-kotlin-eval-in-repl session load))))
+      (ob-kotlin-eval-in-repl session load)
+      nil))) ;; Signal that output has already been written to file
 
 (defun ob-kotlin--ensure-session (session)
   (let ((name (format "*ob-kotlin-%s*" session)))
