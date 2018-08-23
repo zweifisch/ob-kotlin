@@ -44,13 +44,15 @@
   :type 'string)
 
 (defun org-babel-execute:kotlin (body params)
-  (let ((session (cdr (assoc :session params))))
+  (let ((session (cdr (assoc :session params)))
+        (file (cdr (assoc :file params))))
     (ob-kotlin--ensure-session session)
     (let* ((tmp (org-babel-temp-file "kotlin-"))
            (load (progn
                    (with-temp-file tmp (insert body))
-                   (format ":load %s" tmp))))
-      (ob-kotlin-eval-in-repl session load))))
+                   (format ":load %s" tmp)))
+           (result (ob-kotlin-eval-in-repl session load)))
+      (unless file result))))
 
 (defun ob-kotlin--ensure-session (session)
   (let ((name (format "*ob-kotlin-%s*" session)))
