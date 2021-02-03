@@ -77,10 +77,11 @@
     (process-send-string name (format "%s\n\"%s\"\n" body ob-kotlin-eoe))
     (accept-process-output (get-process name) nil nil 1)
     (ob-kotlin--wait ob-kotlin-eoe)
-    (replace-regexp-in-string
-     "^>>> " ""
+    (string-trim-right
      (replace-regexp-in-string
-      (format "\\(^>>> \\)?%s\n" ob-kotlin-eoe) "" ob-kotlin-process-output))))
+      "^res[0-9]*: " ""
+      (replace-regexp-in-string
+       (format "^>>>.*%s.*\n>>>" ob-kotlin-eoe) "" ob-kotlin-process-output)))))
 
 (provide 'ob-kotlin)
 ;;; ob-kotlin.el ends here
